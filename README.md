@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ⚖️ Courtroom Argument Simulator
 
 **An OpenEnv-compliant reinforcement learning environment where an AI agent acts as a criminal defense attorney.**
@@ -245,3 +246,7 @@ courtroom-env/
 ## License
 
 MIT
+=======
+# courtroom-env
+court room rl 
+>>>>>>> 6c447534fef49eccc859b05505f89bf45ac8987f
