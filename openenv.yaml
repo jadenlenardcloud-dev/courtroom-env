@@ -2,12 +2,12 @@ name: courtroom-argument-simulator
 version: "1.0.0"
 description: >
   A real-world reinforcement learning environment simulating criminal defense 
-  proceedings in a courtroom. The AI agent acts as a defense attorney navigating 
-  opening statements, witness examination, cross-examination, and closing arguments.
-  Tasks range from petty theft with clear alibi evidence to premeditated murder 
-  with purely circumstantial prosecution.
+  proceedings. The AI agent acts as a defense attorney navigating opening 
+  statements, witness examination, cross-examination, and closing arguments.
+  Tasks range from petty theft with a clear alibi to premeditated murder with
+  purely circumstantial evidence.
 
-author: "OpenEnv Hackathon Submission"
+author: "Gayathri036"
 license: MIT
 tags:
   - legal
@@ -15,11 +15,14 @@ tags:
   - multi-phase
   - real-world
   - language-agent
+  - openenv
 
 environment:
   class: CourtroomEnvironment
   module: environment
   spec_version: "1.0"
+  entry_point: "app:app"
+  port: 7860
 
 tasks:
   - id: task_easy
@@ -48,55 +51,37 @@ observation_space:
   fields:
     turn: int
     max_turns: int
-    phase: "str — one of: opening | examination | cross | closing | verdict"
+    phase: str
     charge: str
     defendant_profile: dict
-    current_witness: "dict | null"
+    current_witness: dict
     evidence_available: list
     prosecution_last_move: str
-    jury_mood: "float 0.0–1.0"
-    judge_patience: "float 0.0–1.0"
-    case_strength: "float 0.0–1.0"
+    jury_mood: float
+    judge_patience: float
+    case_strength: float
     objections_remaining: int
     message: str
 
 action_space:
   type: dict
   fields:
-    action_type:
-      type: str
-      values:
-        - present_argument
-        - cross_examine
-        - raise_objection
-        - present_evidence
-        - question_witness
-        - negotiate_plea
-        - request_recess
-        - deliver_closing
-        - accept_plea
-    content:
-      type: str
-      description: "The actual argument, question, or statement text"
-    target:
-      type: "str | null"
-      description: "Witness ID or evidence ID when applicable"
+    action_type: str
+    content: str
+    target: str
 
 reward:
   type: float
   range: [-1.0, 1.0]
-  description: >
-    Dense reward signal combining argument quality (0.5 weight), 
-    phase-action alignment (0.3 weight), and jury impact (0.2 weight).
-    Penalties applied for objections without budget, wrong-phase actions,
-    and duplicate evidence presentation.
 
-episode_termination:
-  - "turn >= max_turns (verdict computed from jury_mood + case_strength + judge_patience)"
-  - "judge_patience <= 0.05 (dismissal for misconduct)"
-  - "accept_plea action when plea_available=True"
+endpoints:
+  reset: "POST /reset"
+  step: "POST /step"
+  state: "GET /state/{session_id}"
+  health: "GET /health"
 
 runtime:
   max_episode_minutes: 5
   total_baseline_minutes: 20
   docker_image: "courtroom-env:latest"
+  python_version: "3.11"
