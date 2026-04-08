@@ -1,3 +1,4 @@
+
 [build-system]
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.backends.legacy:build"
@@ -17,11 +18,5 @@ dependencies = [
     "pyyaml>=6.0",
 ]
 
-[project.optional-dependencies]
-dev = ["pytest", "httpx"]
-
 [tool.setuptools.packages.find]
 where = ["."]
-
-[project.urls]
-Homepage = "https://huggingface.co/spaces/Gayathri036/courtroom-argument-simulator"
