@@ -92,13 +92,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Courtroom Argument Simulator Inference")
     # KEY FIX: default="task_easy" instead of required=True
     # This prevents a crash when the validator calls inference.py with no arguments
-    parser.add_argument(
-        "--task",
-        type=str,
-        default="task_easy",
-        help="Task ID (e.g., task_easy, task_medium, task_hard)"
-    )
+   
     args = parser.parse_args()
+parser.add_argument(
+    "--task",
+    type=str,
+    default="task_easy",   # ← ADD this instead
+    help="Task ID (e.g., task_easy, task_medium, task_hard)"
+)
 
     if LOCAL_IMAGE_NAME:
         print(f"Using local image: {LOCAL_IMAGE_NAME}")
