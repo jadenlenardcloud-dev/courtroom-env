@@ -1,107 +1,41 @@
-import os
+"""
+Supply Chain OpenEnv — Inference Script
+Required for platform evaluation.
+"""
+
+import argparse
 import json
-import logging
-from openai import OpenAI
-from environment import CourtroomEnvironment
+import sys
+import os
 
-# Load required environment variables
-API_BASE_URL = os.getenv("API_BASE_URL", "https://api.openai.com/v1")
-MODEL_NAME = os.getenv("MODEL_NAME", "gpt-4o-mini")
-HF_TOKEN = os.getenv("HF_TOKEN")
-LOCAL_IMAGE_NAME = os.getenv("LOCAL_IMAGE_NAME")
+# Ensure the root directory is in the path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Initialize OpenAI client
-client = OpenAI(
-    api_key=HF_TOKEN or os.getenv("OPENAI_API_KEY", "dummy"),
-    base_url=API_BASE_URL
-)
-
-def run_task(task_id: str, max_steps: int = 15):
-    env = CourtroomEnvironment()
-
-    try:
-        print("START")
-
-        state = env.reset(task_id)
-        if hasattr(state, 'model_dump'):
-            state_dict = state.model_dump()
-        elif hasattr(state, 'dict'):
-            state_dict = state.dict()
-        else:
-            state_dict = state
-
-        system_prompt = (
-            "You are a criminal defense attorney in a courtroom simulation. "
-            "You must return purely a JSON object with two string fields: "
-            "1. 'action_type' - the type of action to take (e.g., 'object', 'cross_examine', 'present_evidence', 'deliver_statement'). "
-            "2. 'action_content' - the exact text to say to the courtroom."
-        )
-
-        for step_idx in range(max_steps):
-            state_str = json.dumps(state_dict)
-
-            try:
-                response = client.chat.completions.create(
-                    model=MODEL_NAME,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": f"Current State: {state_str}\n\nWhat is your next action? Return ONLY JSON."}
-                    ],
-                    temperature=0.7,
-                    response_format={"type": "json_object"}
-                )
-
-                content = response.choices[0].message.content
-                action = json.loads(content)
-
-            except Exception as e:
-                logging.error(f"LLM call failed at step {step_idx}: {e}")
-                action = {
-                    "action_type": "deliver_statement",
-                    "action_content": "The defense requests a brief recess."
-                }
-
-            action_type = action.get("action_type", "deliver_statement")
-            action_content = action.get("action_content", "No further questions.")
-
-            try:
-                state, reward, done, truncated, info = env.step(action_type, action_content)
-            except Exception as e:
-                logging.error(f"Environment step failed at step {step_idx}: {e}")
-                break
-
-            if hasattr(state, 'model_dump'):
-                state_dict = state.model_dump()
-            elif hasattr(state, 'dict'):
-                state_dict = state.dict()
-            else:
-                state_dict = state
-
-            print("STEP")
-
-            if done or truncated:
-                break
-
-    finally:
-        print("END")
-
+try:
+    from env.environment import SupplyChainEnv
+    from baseline import HeuristicAgent, run_episode
+except ImportError as e:
+    print(f"Import Error: {e}")
+    sys.exit(1)
 
 if __name__ == "__main__":
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Run Courtroom Argument Simulator Inference")
-    # KEY FIX: default="task_easy" instead of required=True
-    # This prevents a crash when the validator calls inference.py with no arguments
-   
+    parser = argparse.ArgumentParser(description="Run Supply Chain OpenEnv Inference")
+    # Make --task REQUIRED to satisfy the validator log seen in the screenshot
+    parser.add_argument("--task", choices=["task_easy", "task_medium", "task_hard"],
+                        required=True, help="Which task to run")
+    parser.add_argument("--render", action="store_true", help="Print step-by-step output")
+    parser.add_argument("--json", action="store_true", default=True, help="Output results as JSON")
+    
     args = parser.parse_args()
-parser.add_argument(
-    "--task",
-    type=str,
-    default="task_easy",   # ← ADD this instead
-    help="Task ID (e.g., task_easy, task_medium, task_hard)"
-)
 
-    if LOCAL_IMAGE_NAME:
-        print(f"Using local image: {LOCAL_IMAGE_NAME}")
+    # The platform likely expects the results for the specific task
+    try:
+        result = run_episode(args.task, render=args.render)
+        
+        # Always print JSON for the validator if requested or by default
+        if args.json:
+            print(json.dumps({args.task: result}, indent=2, default=str))
+    except Exception as e:
+        print(f"Execution Error: {e}")
+        sys.exit(1)
 
-    run_task(args.task)
